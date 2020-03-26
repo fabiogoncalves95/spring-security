@@ -1,17 +1,16 @@
 package com.example.demo.security;
 
+import com.example.demo.auth.ApplicationUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 
 import java.util.concurrent.TimeUnit;
 
@@ -21,10 +20,12 @@ import java.util.concurrent.TimeUnit;
 public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final PasswordEncoder passwordEncoder;
+    private final ApplicationUserService applicationUserService;
 
     @Autowired
-    public ApplicationSecurityConfig(PasswordEncoder passwordEncoder) {
+    public ApplicationSecurityConfig(PasswordEncoder passwordEncoder, ApplicationUserService applicationUserService) {
         this.passwordEncoder = passwordEncoder;
+        this.applicationUserService = applicationUserService;
     }
 
     @Override
@@ -44,48 +45,34 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
                 .authenticated()
                 .and()
                 .formLogin()
-                    .loginPage("/login").permitAll()
-                    .defaultSuccessUrl("/courses", true)
-                    // .usernameParameter("username") // parameter in the login form
-                    // .passwordParameter("password") // parameter in the login form
+                .loginPage("/login").permitAll()
+                .defaultSuccessUrl("/courses", true)
+                // .usernameParameter("username") // parameter in the login form
+                // .passwordParameter("password") // parameter in the login form
                 .and()
                 .rememberMe()
-                    .tokenValiditySeconds((int) TimeUnit.DAYS.toSeconds(21)) //default to 2 weeks
-                    .key("somethingsecured")
-                    // .rememberMeParameter("remember-me") // parameter in the login form
+                .tokenValiditySeconds((int) TimeUnit.DAYS.toSeconds(21)) //default to 2 weeks
+                .key("somethingsecured")
+                // .rememberMeParameter("remember-me") // parameter in the login form
                 .and()
                 .logout()
-                    .logoutUrl("/logout")
-                    .clearAuthentication(true)
-                    .invalidateHttpSession(true)
-                    .deleteCookies("JSESSIONID", "remember-me")
-                    .logoutSuccessUrl("/login");
+                .logoutUrl("/logout")
+                .clearAuthentication(true)
+                .invalidateHttpSession(true)
+                .deleteCookies("JSESSIONID", "remember-me")
+                .logoutSuccessUrl("/login");
     }
 
     @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.authenticationProvider(daoAuthenticationProvider());
+    }
+
     @Bean
-    protected UserDetailsService userDetailsService() {
-        UserDetails annaSmithUser = User.builder()
-                .username("annasmith")
-                .password(passwordEncoder.encode("password"))
-                .authorities(ApplicationUserRole.STUDENT.getGrantedAuthorities())
-                //.roles(ApplicationUserRole.STUDENT.name()) // ROLE_STUDENT
-                .build();
-
-        UserDetails lindaUser = User.builder()
-                .username("linda")
-                .password(passwordEncoder.encode("password123"))
-                .authorities(ApplicationUserRole.ADMIN.getGrantedAuthorities())
-                //.roles(ApplicationUserRole.ADMIN.name()) // ROLE_ADMIN
-                .build();
-
-        UserDetails tomUser = User.builder()
-                .username("tom")
-                .password(passwordEncoder.encode("password123"))
-                .authorities(ApplicationUserRole.ADMINTRAINEE.getGrantedAuthorities())
-                //.roles(ApplicationUserRole.ADMINTRAINEE.name()) // ROLE_TRAINEE
-                .build();
-
-        return new InMemoryUserDetailsManager(annaSmithUser, lindaUser, tomUser);
+    public DaoAuthenticationProvider daoAuthenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setPasswordEncoder(passwordEncoder);
+        provider.setUserDetailsService(applicationUserService);
+        return provider;
     }
 }
