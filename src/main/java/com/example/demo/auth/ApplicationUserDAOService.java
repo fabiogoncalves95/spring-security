@@ -9,10 +9,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-@Repository("fakerepository")
+@Repository("fake")
 public class ApplicationUserDAOService implements ApplicationUserDAO {
 
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
     private static final String password = "password";
 

@@ -1,5 +1,7 @@
 package com.example.demo.student;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
 public class Student {
     private final Integer studentId;
     private final String studentName;
